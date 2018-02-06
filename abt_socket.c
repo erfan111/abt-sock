@@ -7,9 +7,10 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <assert.h>
 #include "abt.h"
 #include "abt-io.h"
-#include "abt-snoozer.h"
+#include <abt-snoozer.h>
 
 #define PORTNUM 8888
 #define BACKLOG 10000
@@ -35,8 +36,9 @@ int main(int argc, char *argv[])
   struct sockaddr_storage claddr;
   socklen_t addrlen;
   signal(SIGINT, sighandler);
+
   ABT_init(argc, argv);
-  abtio = abt_io_init(CORES);
+
   int abts = 0;//ABT_snoozer_xstream_self_set();
   if (abts != 0){
     fprintf(stderr, "%s\n", "ABT snoozer xstream self error");
@@ -64,6 +66,8 @@ int main(int argc, char *argv[])
                                ABT_SCHED_CONFIG_NULL, &xstreams[i]);
       ABT_xstream_start(xstreams[i]);
   }
+  abtio = abt_io_init(CORES);
+  assert(abtio != NULL);
 
   fd = socket(AF_INET, SOCK_STREAM, 0);
   if(fd < 0){
@@ -100,10 +104,39 @@ int main(int argc, char *argv[])
   return 0;
 }
 
+void handle_error(int no, int client)
+{
+  printf("handle_error client %d: ", client);
+  if(no == ENOMEM)
+    printf("no memory %d: \n", no);
+  else if(no == ENOSYS)
+    printf("no ENOSYS %d: \n", no);
+  else if(no == EINVAL)
+    printf("no EINVAl %d: \n", no);
+  printf("\n" );
+}
+
 void handle_client(void * arg)
 {
   int fd = *(int *)arg;
-  printf("doing nothing for now in %d \n", fd);
+  char buffer[256], error[256];
+  size_t len;
+  printf("client handler started %d \n", fd);
+  while(1){
+    printf("client handler trying to read %d \n", fd);
+    int r = abt_io_read(abtio, fd, buffer, 256);
+    if(r >= 0){
+      printf("read buffer: %s from %d \n", buffer, fd);
+      r = abt_io_write(abtio, fd, buffer, 256);
+    }
+    else{
+      printf("client handler %d failed to read with error = %d \n", fd, r);
+      handle_error(-r, fd);
+      usleep(1000000);
+    }
+  }
+
+  printf("client handler done %d \n", fd);
 }
 
 void sighandler(int sig)
