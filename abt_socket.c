@@ -119,20 +119,20 @@ void handle_error(int no, int client)
 void handle_client(void * arg)
 {
   int fd = *(int *)arg;
-  char buffer[256], error[256];
+  char buffer[150], error[256];
   size_t len;
   printf("client handler started %d \n", fd);
   while(1){
-    printf("client handler trying to read %d \n", fd);
-    int r = abt_io_read(abtio, fd, buffer, 256);
+    //printf("client handler trying to read %d \n", fd);
+    int r = abt_io_read(abtio, fd, buffer, 150);
     if(r >= 0){
-      printf("read buffer: %s from %d \n", buffer, fd);
-      r = abt_io_write(abtio, fd, buffer, 256);
+      //printf("read buffer: %s from %d \n", buffer, fd);
+      r = abt_io_write(abtio, fd, buffer, 150);
     }
     else{
       printf("client handler %d failed to read with error = %d \n", fd, r);
       handle_error(-r, fd);
-      usleep(1000000);
+      //usleep(1000000);
     }
   }
 
